@@ -108,6 +108,7 @@ void demodulate(std::span<const std::complex<float>> input,
 void downsample_audio(std::span<const float> input,
                       std::vector<float>& output,
                       int decimation,
-                      AudioDecimState& state);
+                      AudioDecimState& state,
+                      float gain = 1.0f);
 
 } // namespace dsp
