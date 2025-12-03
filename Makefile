@@ -4,7 +4,17 @@ LDFLAGS   := -liio
 
 # Enable NEON if the compiler target supports it
 # (this will auto-detect ARM NEON on ARM CPUs)
-ifneq (,$(findstring arm,$(shell $(CXX) -dumpmachine)))
+ARCH := $(shell $(CXX) -dumpmachine)
+
+# ARM64 (AArch64)
+ifeq ($(findstring aarch64,$(ARCH)),aarch64)
+    $(info Detected AArch64 → enabling NEON (armv8-a+simd))
+    CXXFLAGS += -march=armv8-a+simd -D__ARM_NEON__
+endif
+
+# ARMv7
+ifeq ($(findstring armv7,$(ARCH)),armv7)
+    $(info Detected ARMv7 → enabling NEON (-mfpu=neon))
     CXXFLAGS += -mfpu=neon -D__ARM_NEON__
 endif
 
