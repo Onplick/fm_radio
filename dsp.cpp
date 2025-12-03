@@ -123,6 +123,22 @@ void demodulate_am(std::span<const std::complex<float>> in,
 #endif
 }
 
+void dc_block(std::span<const float> in,
+              std::vector<float>& out,
+              DcBlockState& st,
+              float R = 0.995f)
+{
+    out.clear();
+    out.reserve(in.size());
+
+    for (float x : in) {
+        float y = x - st.x_prev + R * st.y_prev;
+        st.x_prev = x;
+        st.y_prev = y;
+        out.push_back(y);
+    }
+}
+
 void downsample_audio(std::span<const float> in,
                       std::vector<float>& out,
                       int decim,
