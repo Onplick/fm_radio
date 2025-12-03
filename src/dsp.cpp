@@ -7,7 +7,6 @@
 namespace dsp {
 
 #if defined(__ARM_NEON) || defined(__ARM_NEON__)
-// FIXED: Correctly sums all 8 elements and handles overflow
 static inline int32_t horizontal_sum_8(int16x8_t v) {
     // Widen to int32 to prevent overflow during accumulation
     int32x4_t low32 = vmovl_s16(vget_low_s16(v));
@@ -37,8 +36,7 @@ void downsample_iq(std::span<const int16_t> in,
         return;
 
 #if defined(__ARM_NEON) || defined(__ARM_NEON__)
-    // IMPROVED: Use NEON for any decimation factor
-    {
+
         size_t total_pairs = in.size() / 2;
         size_t blocks = total_pairs / decim;
 
@@ -73,7 +71,6 @@ void downsample_iq(std::span<const int16_t> in,
 
             ptr += stride;
         }
-    }
 #else //__ARM_NEON || __ARM_NEON__
 
     const size_t n = in.size();
@@ -126,7 +123,6 @@ void demodulate_am(std::span<const std::complex<float>> in,
         float32x4_t sum = vaddq_f32(i2, q2);
         float32x4_t mag = vsqrtq_f32(sum);
 
-        // FIXED: Properly resize before storing 4 floats
         size_t old_size = out.size();
         out.resize(old_size + 4);
         vst1q_f32(&out[old_size], mag);

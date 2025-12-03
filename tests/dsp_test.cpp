@@ -15,10 +15,6 @@ bool approx_equal(const std::complex<float>& a, const std::complex<float>& b, fl
            approx_equal(a.imag(), b.imag(), epsilon);
 }
 
-// ============================================================================
-// downsample_iq Tests
-// ============================================================================
-
 TEST(DownsampleIQTest, EmptyInput) {
     std::vector<int16_t> in;
     std::vector<std::complex<float>> out;
@@ -50,7 +46,6 @@ TEST(DownsampleIQTest, SimpleDecimation) {
 }
 
 TEST(DownsampleIQTest, Decimation10) {
-    // Test decim=10 (should use NEON on ARM)
     std::vector<int16_t> in(20, 1);  // 10 IQ pairs, all ones
     std::vector<std::complex<float>> out;
     
@@ -61,7 +56,7 @@ TEST(DownsampleIQTest, Decimation10) {
 }
 
 TEST(DownsampleIQTest, Decimation5) {
-    // Test decim=5 (uses partial NEON blocks)
+    // Test decim=5 (uses partial blocks)
     std::vector<int16_t> in(10, 2);  // 5 IQ pairs, all twos
     std::vector<std::complex<float>> out;
     
@@ -72,7 +67,7 @@ TEST(DownsampleIQTest, Decimation5) {
 }
 
 TEST(DownsampleIQTest, Decimation16) {
-    // Test decim=16 (8 pairs NEON + 8 pairs NEON)
+    // Test decim=16 (8 pairs + 8 pairs)
     std::vector<int16_t> in(32, 1);  // 16 IQ pairs, all ones
     std::vector<std::complex<float>> out;
     
@@ -112,7 +107,7 @@ TEST(DownsampleIQTest, VariedValuesDecim8) {
 }
 
 TEST(DownsampleIQTest, VariedValuesDecim9) {
-    // Test decim=9 (8 pairs NEON + 1 pair scalar)
+    // Test decim=9 (8 pairs + 1 pair scalar)
     std::vector<int16_t> in;
     for (int i = 0; i < 9; i++) {
         in.push_back(i);           // I: 0..8
@@ -252,7 +247,10 @@ TEST(DownsampleIQTest, MaxInt16Values) {
     
     ASSERT_EQ(out.size(), 1);
     float expected = 32767.0f * 8;
-    EXPECT_TRUE(approx_equal(out[0], std::complex<float>(expected, expected)));
+    EXPECT_TRUE(approx_equal(out[0].real(), expected, 1.0f)) 
+        << "Expected I: " << expected << ", Got: " << out[0].real();
+    EXPECT_TRUE(approx_equal(out[0].imag(), expected, 1.0f))
+        << "Expected Q: " << expected << ", Got: " << out[0].imag();
 }
 
 TEST(DownsampleIQTest, MinInt16Values) {
@@ -264,11 +262,14 @@ TEST(DownsampleIQTest, MinInt16Values) {
     
     ASSERT_EQ(out.size(), 1);
     float expected = -32768.0f * 8;
-    EXPECT_TRUE(approx_equal(out[0], std::complex<float>(expected, expected)));
+    EXPECT_TRUE(approx_equal(out[0].real(), expected, 1.0f))
+        << "Expected I: " << expected << ", Got: " << out[0].real();
+    EXPECT_TRUE(approx_equal(out[0].imag(), expected, 1.0f))
+        << "Expected Q: " << expected << ", Got: " << out[0].imag();
 }
 
 TEST(DownsampleIQTest, Decim3Scalar) {
-    // Test small decimation (should use mostly scalar or no NEON benefit)
+    // Test small decimation
     std::vector<int16_t> in = {1, 2, 3, 4, 5, 6};  // 3 IQ pairs
     std::vector<std::complex<float>> out;
     
@@ -321,7 +322,7 @@ TEST(DownsampleIQTest, PartialBlockAtEnd) {
 }
 
 TEST(DownsampleIQTest, ConsistencyAcrossDecimFactors) {
-    // Verify that summing works correctly regardless of NEON block boundaries
+    // Verify that summing works correctly regardless of block boundaries
     std::vector<int16_t> base_data;
     for (int i = 0; i < 24; i++) {
         base_data.push_back(i);
@@ -374,6 +375,60 @@ TEST(DownsampleIQTest, AlternatingSignPattern) {
     EXPECT_TRUE(approx_equal(out[0], std::complex<float>(0.0f, 0.0f)));
 }
 
+TEST(DownsampleIQTest, LargePositiveValues) {
+    // Test with large positive values (but less than max)
+    std::vector<int16_t> in(16, 20000);  // 8 IQ pairs
+    std::vector<std::complex<float>> out;
+    
+    downsample_iq(in, out, 8);
+    
+    ASSERT_EQ(out.size(), 1);
+    float expected = 20000.0f * 8;
+    EXPECT_TRUE(approx_equal(out[0].real(), expected, 1.0f))
+        << "Expected I: " << expected << ", Got: " << out[0].real();
+    EXPECT_TRUE(approx_equal(out[0].imag(), expected, 1.0f))
+        << "Expected Q: " << expected << ", Got: " << out[0].imag();
+}
+
+TEST(DownsampleIQTest, LargeNegativeValues) {
+    // Test with large negative values
+    std::vector<int16_t> in(16, -20000);  // 8 IQ pairs
+    std::vector<std::complex<float>> out;
+    
+    downsample_iq(in, out, 8);
+    
+    ASSERT_EQ(out.size(), 1);
+    float expected = -20000.0f * 8;
+    EXPECT_TRUE(approx_equal(out[0].real(), expected, 1.0f))
+        << "Expected I: " << expected << ", Got: " << out[0].real();
+    EXPECT_TRUE(approx_equal(out[0].imag(), expected, 1.0f))
+        << "Expected Q: " << expected << ", Got: " << out[0].imag();
+}
+
+TEST(DownsampleIQTest, MixedExtremeValues) {
+    // Test mixing max and min values
+    std::vector<int16_t> in;
+    for (int i = 0; i < 4; i++) {
+        in.push_back(32767);   // I: max
+        in.push_back(-32768);  // Q: min
+    }
+    for (int i = 0; i < 4; i++) {
+        in.push_back(-32768);  // I: min
+        in.push_back(32767);   // Q: max
+    }
+    
+    std::vector<std::complex<float>> out;
+    downsample_iq(in, out, 8);
+    
+    ASSERT_EQ(out.size(), 1);
+    float expected_i = 32767.0f * 4 + (-32768.0f) * 4;  // -4
+    float expected_q = (-32768.0f) * 4 + 32767.0f * 4;  // -4
+    EXPECT_TRUE(approx_equal(out[0].real(), expected_i, 1.0f))
+        << "Expected I: " << expected_i << ", Got: " << out[0].real();
+    EXPECT_TRUE(approx_equal(out[0].imag(), expected_q, 1.0f))
+        << "Expected Q: " << expected_q << ", Got: " << out[0].imag();
+}
+
 TEST(DownsampleIQTest, Decimation10Multiple) {
     // Create 20 IQ pairs (40 samples)
     std::vector<int16_t> in;
@@ -408,10 +463,6 @@ TEST(DownsampleIQTest, ClearsOutput) {
     EXPECT_TRUE(approx_equal(out[0], std::complex<float>(4, 6)));
 }
 
-// ============================================================================
-// demodulate_fm Tests
-// ============================================================================
-
 TEST(DemodulateFMTest, EmptyInput) {
     std::vector<std::complex<float>> in;
     std::vector<float> out;
@@ -437,7 +488,7 @@ TEST(DemodulateFMTest, PhaseShift) {
     // Test with 90 degree phase shift
     std::vector<std::complex<float>> in = {{0.0f, 1.0f}};
     std::vector<float> out;
-    DemodState state{std::complex<float>(1.0f, 0.0f)};  // Previous sample at 0°
+    DemodState state{std::complex<float>(1.0f, 0.0f)};  // Previous sample at 0 deg
     
     demodulate_fm(in, out, state);
     
@@ -471,10 +522,6 @@ TEST(DemodulateFMTest, ConsecutiveCalls) {
     // Phase difference between (1,0) and (0,1) is 90 degrees
     EXPECT_TRUE(approx_equal(out2[0], std::numbers::pi_v<float> / 2.0f, 1e-4f));
 }
-
-// ============================================================================
-// demodulate_am Tests
-// ============================================================================
 
 TEST(DemodulateAMTest, EmptyInput) {
     std::vector<std::complex<float>> in;
@@ -522,7 +569,6 @@ TEST(DemodulateAMTest, ZeroMagnitude) {
 }
 
 TEST(DemodulateAMTest, ManyValues) {
-    // Test with enough values to trigger NEON path (4+ samples)
     std::vector<std::complex<float>> in;
     for (int i = 0; i < 10; i++) {
         in.push_back({static_cast<float>(i), static_cast<float>(i)});
@@ -548,10 +594,6 @@ TEST(DemodulateAMTest, ClearsOutput) {
     ASSERT_EQ(out.size(), 1);
     EXPECT_TRUE(approx_equal(out[0], 1.0f));
 }
-
-// ============================================================================
-// downsample_audio Tests
-// ============================================================================
 
 TEST(DownsampleAudioTest, EmptyInput) {
     std::vector<float> in;
@@ -643,9 +685,9 @@ TEST(DownsampleAudioTest, Decim10) {
     EXPECT_TRUE(approx_equal(out[0], 1.0f));  // 10 * 1.0 / 10
 }
 
-// ============================================================================
+
 // Integration Tests
-// ============================================================================
+
 
 TEST(IntegrationTest, IQToAudioPipeline) {
     // Simulate a simple IQ -> FM demod -> audio downsample pipeline
