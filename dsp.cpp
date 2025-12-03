@@ -33,7 +33,7 @@ void downsample_iq(std::span<const int16_t> in,
 
         out.reserve(out.size() + blocks);
 
-        const int16_t* ptr    = input.data();
+        const int16_t* ptr = in.data();
         const int16_t* endptr = ptr + blocks * stride;
 
         while (ptr < endptr) {
