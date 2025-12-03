@@ -28,7 +28,7 @@ void downsample_iq(std::span<const int16_t> in,
 
 #if defined(__ARM_NEON) || defined(__ARM_NEON__)
     {
-        size_t total_pairs = input.size() / 2;
+        size_t total_pairs = in.size() / 2;
         size_t blocks = total_pairs / decim;
 
         out.reserve(out.size() + blocks);
@@ -85,10 +85,10 @@ void demodulate(std::span<const std::complex<float>> in,
     }
 }
 
-void downsample_audio(std::span<const float> inp,
+void downsample_audio(std::span<const float> in,
                       std::vector<float>& out,
                       int decim,
-                      AudioDecimState& state
+                      AudioDecimState& state,
                       float gain = 1.0f)
 {
     const float scale = gain / static_cast<float>(decim);
