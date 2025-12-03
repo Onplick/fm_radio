@@ -35,8 +35,8 @@ PlutoSDR::PlutoSDR(long long frequency_hz,
     : frequency_hz_{frequency_hz}
     , gain_db_{gain_db}
     , audio_gain_{audio_gain}
-    , iq_buf_(kBufferSize / kDecimIq + 64)
-    , freq_buf_(kBufferSize / kDecimIq + 64)
+    , iq_buf_(PlutoConfig::kBufferSize / PlutoConfig::kDecimIq + 64)
+    , freq_buf_(PlutoConfig::kBufferSize / PlutoConfig::kDecimIq + 64)
 {
     if (udp_ip.has_value() && udp_port.has_value()) {
         udp_.open(udp_ip.value(), udp_port.value());
@@ -82,9 +82,9 @@ void PlutoSDR::initialize_hardware()
 
 void PlutoSDR::process_block(std::span<const int16_t> raw, std::vector<float>& audio_out)
 {
-    dsp::downsample_iq(raw, iq_buf_, kDecimIq);
+    dsp::downsample_iq(raw, iq_buf_, PlutoConfig::kDecimIq);
     dsp::demodulate(iq_buf_, freq_buf_, demod_state_);
-    dsp::downsample_audio(freq_buf_, audio_out, kDecimAudio, audio_state_, audio_gain_);
+    dsp::downsample_audio(freq_buf_, audio_out, PlutoConfig::kDecimAudio, audio_state_, audio_gain_);
 }
 
 void PlutoSDR::output_audio(const std::vector<float>& audio)

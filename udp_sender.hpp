@@ -1,10 +1,10 @@
 #pragma once
 
-#include <cstddef>
-#include <cstdint>
-#include <memory>
 #include <netinet/in.h>
 #include <string>
+#include <vector>
+#include <memory>
+#include <type_traits>
 
 /**
  * @file udp_sender.hpp
@@ -55,18 +55,16 @@ public:
      * @param vec Vector containing data to transmit
      */
     template <typename T>
-    void send(const std::vector<T>& vec) const {
-        static_assert(std::is_trivially_copyable_v<T>,
-                      "UdpSender::send<T> requires trivially-copyable POD type");
-
-        if (!is_open() || vec.empty()) {
+        requires std::is_trivially_copyable_v<T>
+    void send(const std::vector<T>& vec) const
+    {
+        if (!is_open() || vec.empty())
             return;
-        }
 
         const void* data = static_cast<const void*>(vec.data());
-        const std::size_t len = vec.size() * sizeof(T);
+        const std::size_t bytes = vec.size() * sizeof(T);
 
-        send_bytes_internal(data, len);
+        send_bytes_internal(data, bytes);
     }
 
 private:
