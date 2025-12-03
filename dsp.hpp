@@ -13,6 +13,19 @@
 namespace dsp {
 
 /**
+ * @enum DemodulationMode
+ * @brief Selects which demodulation method is used in the DSP pipeline.
+ *
+ * This defines the available demodulation schemes:
+ * - FM: Frequency modulation demodulation based on phase difference.
+ * - AM: Amplitude modulation demodulation using envelope detection.
+ */
+enum class DemodulationMode {
+    FM, ///< Frequency Modulation demodulator
+    AM  ///< Amplitude Modulation demodulator
+};
+
+/**
  * @brief Stateful information required for continuous FM demodulation.
  *
  * FM demodulation relies on computing the phase difference between consecutive
@@ -76,16 +89,33 @@ void downsample_iq(std::span<const int16_t> input,
  * This returns the instantaneous frequency deviation, which corresponds to
  * the FM-modulated audio waveform.
  *
- * @param input     Span of complex IQ samples after downsampling.
- * @param output    Vector to receive demodulated floating point samples.
+ * @param in        Span of complex IQ samples after downsampling.
+ * @param out       Vector to receive demodulated floating point samples.
  * @param state     DemodState containing the previous IQ sample needed
  *                  for continuous phase demodulation across block boundaries.
  *
  * @note Output vector is resized to match input size.
  */
-void demodulate(std::span<const std::complex<float>> input,
-                std::vector<float>& output,
+void demodulate_fm(std::span<const std::complex<float>> in,
+                std::vector<float>& out,
                 DemodState& state);
+
+/**
+ * @brief Demodulates AM (Amplitude Modulated) IQ samples using envelope detection.
+ *
+ * This function computes the magnitude of each complex IQ sample:
+ * \f[
+ *     y[n] = |x[n]| = \sqrt{I[n]^2 + Q[n]^2}
+ * \f]
+ *
+ * @param in   Input span of complex IQ samples at baseband.
+ * @param out  Vector that receives the AM-demodulated audio samples.
+ *
+ * The output vector is cleared before new samples are appended.
+ * @note No state is required for AM, so this function is stateless.
+ */
+void demodulate_am(std::span<const std::complex<float>> in,
+                   std::vector<float>& out);
 
 /**
  * @brief Downsample audio via simple decimation averaging.
