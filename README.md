@@ -1,6 +1,6 @@
-# ADALM-PLUT SDR FM Radio Receiver
+# ADALM-PLUTO SDR FM Receiver
 
-A lightweight, fast, C++20 FM radio receiver for the ADALM-PLUTO (PlutoSDR).
+A lightweight, fast, C++20 FM radio receiver for the ADALM-PLUTO Software Defined Radio.
 
 Features:
 
@@ -8,6 +8,7 @@ Features:
 - Pure C++20 DSP
 - Optional UDP streaming
 - Output via stdout (F32LE, 48 kHz)
+- Input from IIO over IP
 - ARM NEON acceleration (auto-detected at build time)
 
 ## Build
