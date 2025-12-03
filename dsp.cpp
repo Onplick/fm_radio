@@ -71,7 +71,7 @@ void downsample_iq(std::span<const int16_t> in,
 #endif //__ARM_NEON || __ARM_NEON__
 }
 
-void demodulate(std::span<const std::complex<float>> in,
+void demodulate_fm(std::span<const std::complex<float>> in,
                 std::vector<float>& out,
                 DemodState& state)
 {
@@ -83,6 +83,44 @@ void demodulate(std::span<const std::complex<float>> in,
         *out_it++ = std::atan2(prod.imag(), prod.real());
         state.prev_iq = sample;
     }
+}
+
+void demodulate_am(std::span<const std::complex<float>> in,
+                   std::vector<float>& out)
+{
+    out.clear();
+    out.reserve(in.size());
+
+#if defined(__ARM_NEON__)
+    const float* ptr = reinterpret_cast<const float*>(in.data());
+    size_t count = in.size();
+    size_t i = 0;
+
+    // Process 4 complex samples (8 floats) at a time
+    for (; i + 4 <= count; i += 4) {
+        float32x4x2_t iq = vld2q_f32(ptr);  // loads I=iq.val[0], Q=iq.val[1]
+
+        float32x4_t i2 = vmulq_f32(iq.val[0], iq.val[0]);
+        float32x4_t q2 = vmulq_f32(iq.val[1], iq.val[1]);
+
+        float32x4_t sum = vaddq_f32(i2, q2);
+        float32x4_t mag = vsqrtq_f32(sum);
+
+        vst1q_f32(&out.emplace_back(), mag);
+
+        ptr += 8; // 8 floats per 4 complex samples
+    }
+
+    // Process leftovers
+    for (; i < count; i++) {
+        out.push_back(std::abs(in[i]));
+    }
+
+#else
+    for (auto& s : in) {
+        out.push_back(std::abs(s));
+    }
+#endif
 }
 
 void downsample_audio(std::span<const float> in,
