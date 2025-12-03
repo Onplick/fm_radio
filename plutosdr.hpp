@@ -18,6 +18,34 @@
  * @brief PlutoSDR FM receiver integrating libIIO and DSP pipeline
  */
 
+/// Constants used by ADALM-PLUTO SDR hardware and DSP configuration.
+struct PlutoConfig {
+    // Hardware URIs and device/channel names
+    static constexpr const char* kPlutoUri        = "ip:pluto.local";
+    static constexpr const char* kDevicePhy       = "ad9361-phy";
+    static constexpr const char* kDeviceRx        = "cf-ad9361-lpc";
+    static constexpr const char* kChannelLO       = "altvoltage0";
+    static constexpr const char* kChannelRxI      = "voltage0";
+    static constexpr const char* kChannelRxQ      = "voltage1";
+
+    // Attribute names
+    static constexpr const char* kAttrFrequency   = "frequency";
+    static constexpr const char* kAttrSampleRate  = "sampling_frequency";
+    static constexpr const char* kAttrGainMode    = "gain_control_mode";
+    static constexpr const char* kAttrGain        = "hardwaregain";
+
+    // Attribute values
+    static constexpr const char* kGainModeManual  = "manual";
+
+    // Rates and buffer sizes
+    static constexpr long long   kInputRateHz     = 2'400'000; ///< 2.4 MSPS
+    static constexpr std::size_t kBufferSize      = 120'000; ///< 50 ms
+
+    // DSP decimations
+    static constexpr int         kDecimIq         = 10;  ///< 2.4M -> 240k
+    static constexpr int         kDecimAudio      = 5;   ///< 240k -> 48k
+};
+
 /// RAII deleter for iio_context
 struct ContextDeleter {
     void operator()(iio_context* ctx) const noexcept;
@@ -55,13 +83,6 @@ public:
     void run();
 
 private:
-    // Config
-    static constexpr const char* kPlutoUri    = "ip:pluto.local";
-    static constexpr long long kInputRateHz = 2'400'000;   // 2.4 MSPS
-    static constexpr std::size_t kBufferSize  = 120'000;     // 50 ms
-    static constexpr int kDecimIq     = 10;          // 2.4M -> 240k
-    static constexpr int kDecimAudio  = 5;           // 240k -> 48k
-
     // User parameters
     long long frequency_hz_;
     double gain_db_;
