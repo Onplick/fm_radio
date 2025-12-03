@@ -40,6 +40,24 @@ struct DemodState {
 };
 
 /**
+ * @brief Internal state for the DC block IIR filter
+ *
+ * This structure stores the one-sample memory required for the
+ * first-order high-pass DC blocker:
+ * \f[
+ *   y[n] = x[n] - x[n-1] + R \cdot y[n-1]
+ * \f]
+ *
+ * Applications using the DC blocker must keep one instance of this
+ * state and pass it to each `dc_block()` call to maintain continuity
+ * between blocks.
+ */
+struct DcBlockState {
+    float y_prev = 0.0f; ///< Previous output sample
+    float x_prev = 0.0f; ///< Previous input sample
+};
+
+/**
  * @brief Stateful accumulator for block-based audio decimation.
  *
  * Audio downsampling usually computes an average over N input samples.
@@ -116,6 +134,30 @@ void demodulate_fm(std::span<const std::complex<float>> in,
  */
 void demodulate_am(std::span<const std::complex<float>> in,
                    std::vector<float>& out);
+
+/**
+ * @brief Applies a first-order DC blocking filter to an input signal.
+ *
+ * Implements a standard one-pole high-pass filter that removes the DC
+ * offset and very low-frequency drift:
+ * \f[
+ *   y[n] = x[n] - x[n-1] + R \cdot y[n-1]
+ * \f]
+ *
+ * The parameter \p R controls the cutoff frequency; values close to 1.0
+ * (e.g., 0.995) remove only DC, while lower values increase the
+ * high-pass effect.
+ *
+ * @param in     Input audio or demodulated signal.
+ * @param out    Output vector receiving the DC-blocked samples.
+ *               Cleared on entry.
+ * @param st     Persistent filter state (maintains continuity between calls).
+ * @param R      Pole coefficient (0 < R < 1). Default: 0.995.
+ */
+void dc_block(std::span<const float> in,
+              std::vector<float>& out,
+              DcBlockState& st,
+              float R = 0.995f);
 
 /**
  * @brief Downsample audio via simple decimation averaging.
