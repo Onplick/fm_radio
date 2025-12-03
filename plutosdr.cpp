@@ -83,7 +83,7 @@ void PlutoSDR::initialize_hardware()
 void PlutoSDR::process_block(std::span<const int16_t> raw, std::vector<float>& audio_out)
 {
     dsp::downsample_iq(raw, iq_buf_, PlutoConfig::kDecimIq);
-    dsp::demodulate(iq_buf_, freq_buf_, demod_state_);
+    dsp::demodulate_fm(iq_buf_, freq_buf_, demod_state_);
     dsp::downsample_audio(freq_buf_, audio_out, PlutoConfig::kDecimAudio, audio_state_, audio_gain_);
 }
 
