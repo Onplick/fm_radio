@@ -89,7 +89,7 @@ void downsample_audio(std::span<const float> in,
                       std::vector<float>& out,
                       int decim,
                       AudioDecimState& state,
-                      float gain = 1.0f)
+                      float gain)
 {
     const float scale = gain / static_cast<float>(decim);
   
