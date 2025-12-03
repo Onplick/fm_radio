@@ -49,14 +49,29 @@ public:
     [[nodiscard]] bool is_open() const noexcept;
 
     /**
-     * @brief Send binary data to configured destination.
+     * @brief Send a vector of values over UDP.
      *
-     * @param data Buffer to be sent
-     * @param len  Number of bytes
+     * @tparam T  Element type
+     * @param vec Vector containing data to transmit
      */
-    void send(std::span<const std::byte> data) const;
+    template <typename T>
+    void send(const std::vector<T>& vec) const {
+        static_assert(std::is_trivially_copyable_v<T>,
+                      "UdpSender::send<T> requires trivially-copyable POD type");
+
+        if (!is_open() || vec.empty()) {
+            return;
+        }
+
+        const void* data = static_cast<const void*>(vec.data());
+        const std::size_t len = vec.size() * sizeof(T);
+
+        send_bytes_internal(data, len);
+    }
 
 private:
     std::unique_ptr<int, SocketDeleter> sock_fd_{};
     sockaddr_in addr_{};
+
+    void send_bytes_internal(const void* data, std::size_t len) const;
 };
