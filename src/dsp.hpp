@@ -36,7 +36,7 @@ enum class DemodulationMode {
  */
 struct DemodState {
     /// Last IQ sample of previous block (required for phase continuity)
-    std::complex<float> prev_iq = {0.0f, 0.0f};
+    std::complex<float> prev_iq = {1.0f, 0.0f};
 };
 
 /**
